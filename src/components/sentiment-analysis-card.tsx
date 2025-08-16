@@ -1,8 +1,21 @@
 "use client";
 
 import { Bot, Smile, Frown, Meh } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { Pie, PieChart, Cell } from "recharts";
 import type { AnalyzeStockSentimentOutput } from "@/ai/flows/analyze-stock-sentiment";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,6 +26,45 @@ interface SentimentAnalysisCardProps {
 export function SentimentAnalysisCard({ data }: SentimentAnalysisCardProps) {
   const { positive, negative, neutral, summary } = data.sentiment;
 
+  const chartData = [
+    {
+      sentiment: "Positive",
+      value: positive,
+      fill: "hsl(var(--chart-1))",
+      icon: Smile,
+    },
+    {
+      sentiment: "Negative",
+      value: negative,
+      fill: "hsl(var(--destructive))",
+      icon: Frown,
+    },
+    {
+      sentiment: "Neutral",
+      value: neutral,
+      fill: "hsl(var(--muted-foreground))",
+      icon: Meh,
+    },
+  ];
+
+  const chartConfig = {
+    value: {
+      label: "Sentiment",
+    },
+    Positive: {
+      label: "Positive",
+      color: "hsl(var(--chart-1))",
+    },
+    Negative: {
+      label: "Negative",
+      color: "hsl(var(--destructive))",
+    },
+    Neutral: {
+      label: "Neutral",
+      color: "hsl(var(--muted-foreground))",
+    },
+  };
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -22,30 +74,49 @@ export function SentimentAnalysisCard({ data }: SentimentAnalysisCardProps) {
         </CardTitle>
         <CardDescription>{summary}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Smile className="h-5 w-5 text-green-500" />
-            <span className="text-sm font-medium">Positive</span>
-            <span className="ml-auto text-sm text-muted-foreground">{Math.round(positive * 100)}%</span>
+      <CardContent>
+        <div className="grid md:grid-cols-2 gap-6 items-center">
+          <div>
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto aspect-square h-full max-h-[250px]"
+            >
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="sentiment"
+                  innerRadius={50}
+                  strokeWidth={5}
+                >
+                  {chartData.map((entry) => (
+                    <Cell key={`cell-${entry.sentiment}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ChartContainer>
           </div>
-          <Progress value={positive * 100} className="h-2 [&>div]:bg-green-500" />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Frown className="h-5 w-5 text-red-500" />
-            <span className="text-sm font-medium">Negative</span>
-            <span className="ml-auto text-sm text-muted-foreground">{Math.round(negative * 100)}%</span>
+          <div className="space-y-4">
+            {chartData.map((entry) => (
+              <div
+                key={entry.sentiment}
+                className="flex items-center gap-2"
+              >
+                <entry.icon
+                  className="h-5 w-5"
+                  style={{ color: entry.fill }}
+                />
+                <span className="text-sm font-medium">{entry.sentiment}</span>
+                <span className="ml-auto text-sm text-muted-foreground">
+                  {Math.round(entry.value * 100)}%
+                </span>
+              </div>
+            ))}
           </div>
-          <Progress value={negative * 100} className="h-2 [&>div]:bg-red-500" />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Meh className="h-5 w-5 text-yellow-500" />
-            <span className="text-sm font-medium">Neutral</span>
-            <span className="ml-auto text-sm text-muted-foreground">{Math.round(neutral * 100)}%</span>
-          </div>
-          <Progress value={neutral * 100} className="h-2 [&>div]:bg-yellow-500" />
         </div>
       </CardContent>
     </Card>
@@ -63,17 +134,17 @@ export function SentimentAnalysisSkeleton() {
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
       </CardHeader>
-      <CardContent className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div className="space-y-2" key={i}>
-            <div className="flex items-center gap-2">
+      <CardContent className="grid md:grid-cols-2 gap-6 items-center">
+        <Skeleton className="h-48 w-48 rounded-full mx-auto" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div className="flex items-center gap-2" key={i}>
               <Skeleton className="h-5 w-5 rounded-full" />
               <Skeleton className="h-5 w-20" />
               <Skeleton className="h-5 w-12 ml-auto" />
             </div>
-            <Skeleton className="h-2 w-full" />
-          </div>
-        ))}
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
