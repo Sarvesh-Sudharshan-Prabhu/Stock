@@ -41,10 +41,7 @@ const prompt = ai.definePrompt({
   prompt: `You are a financial analyst summarizing market sentiment for stocks.
   Analyze the sentiment data fetched by the fetchSentimentData tool for the given stock ticker and provide a concise summary of the factors impacting the sentiment.
 
-  Stock Ticker: {{{ticker}}}
-  Sentiment Data: {{await fetchSentimentData ticker=ticker}}
-
-  Summary:`, // Changed here to be a tool
+  Use the fetchSentimentData tool to get the data for the ticker: {{{ticker}}}.`,
 });
 
 const summarizeMarketSentimentFlow = ai.defineFlow(
