@@ -42,14 +42,10 @@ export function Dashboard() {
   const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       try {
-        // Reset state
         setStockData(null);
         setSentimentData(null);
         
-        // Fetch sentiment and stock data in parallel
-        const sentimentPromise = summarizeMarketSentiment({ ticker: newTicker });
-        
-        const sentimentRes = await sentimentPromise;
+        const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
         setSentimentData(sentimentRes);
         
         const stock = await getStockData(newTicker, newTimeRange, sentimentRes);
