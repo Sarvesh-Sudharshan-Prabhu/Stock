@@ -18,7 +18,7 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
   const [results, setResults] = useState<TickerSearchResult>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const commandRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const debouncedQuery = useDebounce(query, 300);
 
@@ -43,26 +43,27 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
     onSearch(ticker);
   };
 
-  const handleFocus = () => {
-    setIsOpen(true);
-  };
-  
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // If the new focused element is not part of the command list, close it
-    if (commandRef.current && !commandRef.current.contains(e.relatedTarget as Node)) {
-        setIsOpen(false);
+  const handleClickOutside = (event: MouseEvent) => {
+    if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      setIsOpen(false);
     }
   };
 
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
 
   return (
-    <Command shouldFilter={false} className="relative overflow-visible" ref={commandRef}>
+    <Command shouldFilter={false} className="relative overflow-visible" ref={containerRef}>
       <CommandInput
         placeholder="Search for a company..."
         value={query}
         onValueChange={setQuery}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
+        onFocus={() => setIsOpen(true)}
         disabled={isSearching}
       />
       {isOpen && (

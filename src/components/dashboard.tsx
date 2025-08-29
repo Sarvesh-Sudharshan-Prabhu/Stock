@@ -28,10 +28,6 @@ export function Dashboard() {
   const fetchData = useCallback((newTicker: string) => {
     startTransition(async () => {
       try {
-        // Keep previous data while new data is loading for a smoother experience
-        // setStockData(null); 
-        // setAiSummary(null);
-
         const [stock, summaryRes] = await Promise.all([
           getStockData(newTicker, timeRange),
           summarizeMarketSentiment({ ticker: newTicker }),
@@ -45,8 +41,6 @@ export function Dashboard() {
             title: "Error",
             description: `Could not load stock data for ${newTicker}.`,
           });
-          // Don't null out data if the API fails, keep the old data
-          // setStockData(null); 
         }
         setAiSummary(summaryRes);
       } catch (error) {
@@ -56,8 +50,6 @@ export function Dashboard() {
           title: "Error",
           description: `Failed to fetch data for ${newTicker}. Please try again.`,
         });
-        // setStockData(null);
-        // setAiSummary(null);
       }
     });
   }, [toast, timeRange]);
@@ -93,6 +85,11 @@ export function Dashboard() {
           <DollarSign className="h-6 w-6 text-primary" />
           <span className="text-xl">MarketMood</span>
         </div>
+        <div className="flex-1">
+          <div className="w-full max-w-sm mx-auto">
+             <CompanySearch onSearch={handleSearch} isSearching={isPending} />
+          </div>
+        </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <div className="mb-8">
@@ -118,9 +115,6 @@ export function Dashboard() {
                         )}
                         <h1 className="text-3xl font-bold">{stockData.name} ({stockData.ticker})</h1>
                       </div>
-                       <div className="w-full max-w-xs">
-                          <CompanySearch onSearch={handleSearch} isSearching={isPending} />
-                       </div>
                     </div>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
