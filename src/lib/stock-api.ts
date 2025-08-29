@@ -1,8 +1,8 @@
 'use server';
 
 import { z } from 'zod';
-import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult } from './types';
-import { analyzeStockSentiment } from '@/ai/flows/analyze-stock-sentiment';
+import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult, type SentimentData } from './types';
+import { summarizeMarketSentiment } from '@/ai/flows/summarize-market-sentiment';
 
 const API_KEY = process.env.POLYGON_API_KEY;
 
@@ -57,13 +57,13 @@ export async function searchTickers(query: string): Promise<TickerSearchResult> 
 
 export async function getStockData(
   ticker: string,
-  range: TimeRange
+  range: TimeRange,
+  sentimentData: SentimentData | null
 ): Promise<StockData | null> {
   try {
-    const [details, aggregates, sentiment, prevDayClose] = await Promise.all([
+    const [details, aggregates, prevDayClose] = await Promise.all([
       getStockDetails(ticker),
       getAggregateData(ticker, range),
-      analyzeStockSentiment({ ticker }),
       getPreviousDayClose(ticker)
     ]);
 
@@ -73,7 +73,7 @@ export async function getStockData(
     }
 
     const { name } = details;
-    const currentPrice = aggregates.length > 0 ? aggregates[aggregates.length-1].o : prevDayClose.c;
+    const currentPrice = aggregates.length > 0 ? aggregates[aggregates.length - 1].o : prevDayClose.c;
     const change = currentPrice - prevDayClose.o;
     const changePercent = (change / prevDayClose.o) * 100;
 
@@ -87,7 +87,7 @@ export async function getStockData(
         date: new Date(agg.t).toISOString(),
         value: agg.o,
       })),
-      sentiment,
+      sentiment: sentimentData,
       logoUrl: details.branding?.logo_url ? `${details.branding.logo_url}?apiKey=${API_KEY}`: undefined,
     };
   } catch (error) {

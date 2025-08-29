@@ -1,5 +1,18 @@
 import { z } from 'zod';
-import type { AnalyzeStockSentimentOutput } from "@/ai/flows/analyze-stock-sentiment";
+
+export const SentimentDataSchema = z.object({
+  sentiment: z
+    .object({
+      positive: z.number().describe('The proportion of positive sentiment.'),
+      negative: z.number().describe('The proportion of negative sentiment.'),
+      neutral: z.number().describe('The proportion of neutral sentiment.'),
+    })
+    .describe('The aggregated sentiment analysis results.'),
+  summary: z.string().describe('A summary of the overall sentiment.'),
+});
+
+export type SentimentData = z.infer<typeof SentimentDataSchema> | null;
+
 
 export interface StockData {
   ticker: string;
@@ -8,7 +21,7 @@ export interface StockData {
   change: number;
   changePercent: number;
   chartData: { date: string; value: number }[];
-  sentiment: AnalyzeStockSentimentOutput;
+  sentiment: SentimentData;
   logoUrl?: string;
 }
 

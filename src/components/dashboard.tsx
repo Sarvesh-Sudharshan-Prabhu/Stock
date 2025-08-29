@@ -9,10 +9,9 @@ import { SentimentAnalysisCard, SentimentAnalysisSkeleton } from "@/components/s
 import { AiSummaryCard, AiSummarySkeleton } from "@/components/ai-summary-card";
 import { OptionPricerCard } from "@/components/option-pricer-card";
 import { PricePredictorCard } from "@/components/price-predictor-card";
-import type { StockData, TimeRange } from "@/lib/types";
+import type { StockData, TimeRange, SentimentData } from "@/lib/types";
 import { getStockData } from "@/lib/stock-api";
 import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment";
-import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentiment";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +34,7 @@ const popularTickers = [
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
   const [stockData, setStockData] = useState<StockData | null>(null);
-  const [aiSummary, setAiSummary] = useState<SentimentAnalysisOutput | null>(null);
+  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -43,12 +42,17 @@ export function Dashboard() {
   const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       try {
+        // Reset state
         setStockData(null);
-        setAiSummary(null);
-        const [stock, summaryRes] = await Promise.all([
-          getStockData(newTicker, newTimeRange),
-          summarizeMarketSentiment({ ticker: newTicker }),
-        ]);
+        setSentimentData(null);
+        
+        // Fetch sentiment and stock data in parallel
+        const sentimentPromise = summarizeMarketSentiment({ ticker: newTicker });
+        
+        const sentimentRes = await sentimentPromise;
+        setSentimentData(sentimentRes);
+        
+        const stock = await getStockData(newTicker, newTimeRange, sentimentRes);
 
         if (stock) {
           setStockData(stock);
@@ -60,7 +64,6 @@ export function Dashboard() {
             description: `Could not load stock data for ${newTicker}.`,
           });
         }
-        setAiSummary(summaryRes);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         toast({
@@ -209,8 +212,8 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData?.sentiment && <SentimentAnalysisCard data={stockData.sentiment} />}
-                {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
+                {isPending && !sentimentData ? <SentimentAnalysisSkeleton /> : sentimentData && <SentimentAnalysisCard data={sentimentData} />}
+                {isPending && !sentimentData ? <AiSummarySkeleton /> : sentimentData && <AiSummaryCard data={sentimentData} />}
              </div>
             {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
           </div>

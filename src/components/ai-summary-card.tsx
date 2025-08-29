@@ -2,11 +2,11 @@
 
 import { Bot } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentiment";
+import type { SentimentData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface AiSummaryCardProps {
-  data: SentimentAnalysisOutput;
+  data: NonNullable<SentimentData>;
 }
 
 export function AiSummaryCard({ data }: AiSummaryCardProps) {

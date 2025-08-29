@@ -12,19 +12,18 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart";
 import { Pie, PieChart, Cell } from "recharts";
-import type { AnalyzeStockSentimentOutput } from "@/ai/flows/analyze-stock-sentiment";
+import type { SentimentData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SentimentAnalysisCardProps {
-  data: AnalyzeStockSentimentOutput;
+  data: NonNullable<SentimentData>;
 }
 
 export function SentimentAnalysisCard({ data }: SentimentAnalysisCardProps) {
-  const { positive, negative, neutral, summary } = data.sentiment;
+  const { positive, negative, neutral } = data.sentiment;
+  const { summary } = data;
 
   const chartData = [
     {
