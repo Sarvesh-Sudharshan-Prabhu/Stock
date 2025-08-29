@@ -149,6 +149,24 @@ function getAggregateDateRange(range: TimeRange) {
       timespan = 'hour';
       multiplier = 1;
       break;
+    case '6M':
+      fromDate = new Date();
+      fromDate.setMonth(today.getMonth() - 6);
+      timespan = 'day';
+      multiplier = 1;
+      break;
+    case '1Y':
+      fromDate = new Date();
+      fromDate.setFullYear(today.getFullYear() - 1);
+      timespan = 'day';
+      multiplier = 1;
+      break;
+    case 'All':
+      fromDate = new Date();
+      fromDate.setFullYear(today.getFullYear() - 20); // Fetch up to 20 years of data
+      timespan = 'month';
+      multiplier = 1;
+      break;
     case '1M':
     default:
       fromDate = new Date();
@@ -164,7 +182,7 @@ function getAggregateDateRange(range: TimeRange) {
 
 async function getAggregateData(ticker: string, range: TimeRange) {
   const { from, to, multiplier, timespan } = getAggregateDateRange(range);
-  const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&apiKey=${API_KEY}`;
+  const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=5000&apiKey=${API_KEY}`;
 
   try {
     const response = await fetch(url);

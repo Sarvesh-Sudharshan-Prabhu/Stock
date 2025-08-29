@@ -35,15 +35,17 @@ export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
   const [stockData, setStockData] = useState<StockData | null>(null);
   const [aiSummary, setAiSummary] = useState<SentimentAnalysisOutput | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>("1D");
+  const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const fetchData = useCallback((newTicker: string) => {
+  const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       try {
+        setStockData(null);
+        setAiSummary(null);
         const [stock, summaryRes] = await Promise.all([
-          getStockData(newTicker, timeRange),
+          getStockData(newTicker, newTimeRange),
           summarizeMarketSentiment({ ticker: newTicker }),
         ]);
 
@@ -67,11 +69,11 @@ export function Dashboard() {
         });
       }
     });
-  }, [toast, timeRange]);
+  }, [toast]);
 
   useEffect(() => {
     if (ticker) {
-      fetchData(ticker);
+      fetchData(ticker, timeRange);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker, timeRange]);
@@ -79,9 +81,11 @@ export function Dashboard() {
 
   const handleSearch = (newTicker: string) => {
     setTicker(newTicker.toUpperCase());
-    setStockData(null);
-    setAiSummary(null);
   };
+
+  const handleTimeRangeChange = (newTimeRange: TimeRange) => {
+    setTimeRange(newTimeRange);
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -207,7 +211,7 @@ export function Dashboard() {
                 {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData?.sentiment && <SentimentAnalysisCard data={stockData.sentiment} />}
                 {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
              </div>
-            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={setTimeRange} />}
+            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1">
             <OptionPricerCard stockPrice={stockData?.price} />
@@ -217,5 +221,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    

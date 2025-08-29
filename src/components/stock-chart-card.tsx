@@ -49,6 +49,9 @@ const formatDate = (dateString: string, range: TimeRange) => {
     case '1D': return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     case '1W': return date.toLocaleDateString([], { weekday: 'short' });
     case '1M': return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    case '6M': return date.toLocaleDateString([], { month: 'short', year: '2-digit' });
+    case '1Y': return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+    case 'All': return date.toLocaleDateString([], { year: 'numeric' });
     default: return date.toLocaleDateString();
   }
 };
@@ -58,7 +61,7 @@ export function StockChartCard({ data, timeRange, onTimeRangeChange }: StockChar
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="grid gap-2">
           <CardTitle>Chart</CardTitle>
           <CardDescription>
@@ -70,6 +73,9 @@ export function StockChartCard({ data, timeRange, onTimeRangeChange }: StockChar
             <TabsTrigger value="1D">1D</TabsTrigger>
             <TabsTrigger value="1W">1W</TabsTrigger>
             <TabsTrigger value="1M">1M</TabsTrigger>
+            <TabsTrigger value="6M">6M</TabsTrigger>
+            <TabsTrigger value="1Y">1Y</TabsTrigger>
+            <TabsTrigger value="All">All</TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -78,7 +84,7 @@ export function StockChartCard({ data, timeRange, onTimeRangeChange }: StockChar
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data.chartData}
-              margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+              margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis
@@ -155,5 +161,3 @@ export function StockChartSkeleton() {
     </Card>
   );
 }
-
-    

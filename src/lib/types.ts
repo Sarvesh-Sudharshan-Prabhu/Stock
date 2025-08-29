@@ -12,7 +12,7 @@ export interface StockData {
   logoUrl?: string;
 }
 
-export type TimeRange = "1D" | "1W" | "1M";
+export type TimeRange = "1D" | "1W" | "1M" | "6M" | "1Y" | "All";
 
 export const NewsArticleSchema = z.object({
   title: z.string(),
