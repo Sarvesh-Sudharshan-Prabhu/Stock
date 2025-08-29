@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { type StockData, type TimeRange } from './types';
+import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult } from './types';
 import { analyzeStockSentiment } from '@/ai/flows/analyze-stock-sentiment';
 
 const API_KEY = process.env.POLYGON_API_KEY;
@@ -10,29 +10,12 @@ if (!API_KEY) {
   throw new Error('Polygon.io API key is not set.');
 }
 
-const NewsArticleSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
-});
-export type NewsArticle = z.infer<typeof NewsArticleSchema>;
-
 const StockDetailsSchema = z.object({
   name: z.string(),
   branding: z.object({
     logo_url: z.string().optional(),
   }).optional(),
 });
-
-const TickerSearchSchema = z.object({
-  ticker: z.string(),
-  name: z.string(),
-  branding: z.object({
-    logo_url: z.string().optional(),
-  }).optional(),
-});
-export const TickerSearchResultSchema = z.array(TickerSearchSchema);
-export type TickerSearchResult = z.infer<typeof TickerSearchResultSchema>;
-
 
 interface PolygonAggregatesResponse {
   results: { t: number; o: number }[];
@@ -202,6 +185,10 @@ export async function getNews(ticker: string): Promise<NewsArticle[]> {
       throw new Error(`Failed to fetch news: ${response.statusText}`);
     }
     const data = await response.json();
+    const NewsArticleSchema = z.object({
+      title: z.string(),
+      description: z.string().optional(),
+    });
     return z.array(NewsArticleSchema).parse(data.results);
   } catch (error) {
     console.error(`Error fetching news for ${ticker}:`, error);

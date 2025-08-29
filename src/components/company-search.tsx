@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Command, CommandInput, CommandItem, CommandList, CommandEmpty, CommandLoading } from "@/components/ui/command";
 import { searchTickers } from "@/lib/stock-api";
-import type { TickerSearchResult } from "@/lib/stock-api";
+import type { TickerSearchResult } from "@/lib/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import Image from "next/image";
 import { Skeleton } from "./ui/skeleton";
