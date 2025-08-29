@@ -26,38 +26,40 @@ interface PolygonAggregatesResponse {
   ticker: string;
 }
 
-interface PolygonSnapshotResponse {
-  ticker: {
-    day: { c: number; o: number };
-    todaysChange: number;
-    todaysChangePerc: number;
-  };
+interface PolygonPreviousCloseResponse {
+  results: {
+    c: number; // close
+    o: number; // open
+  }[];
 }
+
 
 export async function getStockData(
   ticker: string,
   range: TimeRange
 ): Promise<StockData | null> {
   try {
-    const [details, snapshot, aggregates, sentiment] = await Promise.all([
+    const [details, aggregates, sentiment, prevDayClose] = await Promise.all([
       getStockDetails(ticker),
-      getTickerSnapshot(ticker),
       getAggregateData(ticker, range),
       analyzeStockSentiment({ ticker }),
+      getPreviousDayClose(ticker)
     ]);
 
-    if (!details || !snapshot || !aggregates) {
+    if (!details || !aggregates || !prevDayClose) {
       console.error(`Failed to fetch complete data for ${ticker}`);
       return null;
     }
 
     const { name } = details;
-    const { price, change, changePercent } = snapshot;
+    const currentPrice = aggregates.length > 0 ? aggregates[aggregates.length-1].o : prevDayClose.c;
+    const change = currentPrice - prevDayClose.o;
+    const changePercent = (change / prevDayClose.o) * 100;
 
     return {
       ticker,
       name,
-      price,
+      price: currentPrice,
       change,
       changePercent,
       chartData: aggregates.map((agg) => ({
@@ -89,24 +91,22 @@ async function getStockDetails(ticker: string) {
   }
 }
 
-async function getTickerSnapshot(ticker: string) {
-  const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${API_KEY}`;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const data: PolygonSnapshotResponse = await response.json();
-
-    return {
-      price: data.ticker.day.c,
-      change: data.ticker.todaysChange,
-      changePercent: data.ticker.todaysChangePerc,
-    };
-  } catch (error) {
-    console.error(`Error fetching ticker snapshot for ${ticker}:`, error);
-    // Return a default/fallback structure on error
-    return { price: 0, change: 0, changePercent: 0 };
-  }
+async function getPreviousDayClose(ticker: string) {
+    const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${API_KEY}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data: PolygonPreviousCloseResponse = await response.json();
+        if (data.results && data.results.length > 0) {
+            return data.results[0];
+        }
+        return { c: 0, o: 0 };
+    } catch (error) {
+        console.error(`Error fetching previous day close for ${ticker}:`, error);
+        return { c: 0, o: 0 };
+    }
 }
+
 
 function getAggregateDateRange(range: TimeRange) {
   const today = new Date();
