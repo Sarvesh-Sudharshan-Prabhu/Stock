@@ -107,18 +107,19 @@ export function OptionPricerCard({ stockPrice }: OptionPricerCardProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="mt-auto">
-         <CardDescription className="text-xs text-muted-foreground">
-            The Black-Scholes model provides a theoretical estimate of an option's price.
-            <strong className="font-semibold">Stock Price (S)</strong> is the current market price.
-            <strong className="font-semibold">Strike Price (K)</strong> is the price at which the option can be exercised.
-            <strong className="font-semibold">Time to Maturity (T)</strong> is the time remaining until the option expires, in years.
-            <strong className="font-semibold">Risk-Free Rate (r)</strong> is the theoretical return of an investment with no risk, like a government bond.
-            <strong className="font-semibold">Volatility (σ)</strong> is a measure of the stock's expected price fluctuation.
-          </CardDescription>
+      <CardFooter className="mt-auto pt-4">
+         <div className="text-xs text-muted-foreground space-y-2">
+            <p className="font-semibold text-foreground">How to use this tool:</p>
+            <ul className="list-disc pl-4 space-y-1">
+                <li><strong className="font-semibold">Stock Price (S):</strong> The current market price of the stock.</li>
+                <li><strong className="font-semibold">Strike Price (K):</strong> The price at which the option can be exercised.</li>
+                <li><strong className="font-semibold">Time to Maturity (T):</strong> The time until the option expires, in years (e.g., 3 months = 0.25).</li>
+                <li><strong className="font-semibold">Risk-Free Rate (r):</strong> The return of a risk-free investment, like a government bond (e.g., 5% = 0.05).</li>
+                <li><strong className="font-semibold">Volatility (σ):</strong> The stock's expected price fluctuation (e.g., 20% = 0.2).</li>
+            </ul>
+            <p className="pt-2">This model calculates the theoretical price of European options, which can only be exercised at expiration.</p>
+         </div>
       </CardFooter>
     </Card>
   );
 }
-
-    

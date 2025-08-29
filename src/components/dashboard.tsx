@@ -8,6 +8,7 @@ import { StockChartCard, StockChartSkeleton } from "@/components/stock-chart-car
 import { SentimentAnalysisCard, SentimentAnalysisSkeleton } from "@/components/sentiment-analysis-card";
 import { AiSummaryCard, AiSummarySkeleton } from "@/components/ai-summary-card";
 import { OptionPricerCard } from "@/components/option-pricer-card";
+import { PricePredictorCard } from "@/components/price-predictor-card";
 import type { StockData, TimeRange } from "@/lib/types";
 import { getStockData } from "@/lib/stock-api";
 import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment";
@@ -213,8 +214,9 @@ export function Dashboard() {
              </div>
             {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
           </div>
-          <div className="lg:col-span-1 xl:col-span-1">
+          <div className="lg:col-span-1 xl:col-span-1 space-y-6">
             <OptionPricerCard stockPrice={stockData?.price} />
+            <PricePredictorCard stockData={stockData} isPending={isPending} />
           </div>
         </div>
       </main>
