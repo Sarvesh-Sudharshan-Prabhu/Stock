@@ -40,18 +40,18 @@ export function Dashboard() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
+  const fetchAllData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
+      setStockData(null);
+      setSentimentData(null);
       try {
         const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
         setSentimentData(sentimentRes);
         
-        const stock = await getStockData(newTicker, newTimeRange, sentimentRes);
-
-        if (stock) {
-          setStockData(stock);
+        const stockRes = await getStockData(newTicker, newTimeRange);
+        if (stockRes) {
+          setStockData(stockRes);
         } else {
-          setStockData(null);
           toast({
             variant: "destructive",
             title: "Error",
@@ -65,20 +65,24 @@ export function Dashboard() {
           title: "Error",
           description: `Failed to fetch data for ${newTicker}. Please try again.`,
         });
+        setStockData(null);
+        setSentimentData(null);
       }
     });
   }, [toast]);
 
   useEffect(() => {
     if (ticker) {
-      fetchData(ticker, timeRange);
+      fetchAllData(ticker, timeRange);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticker, timeRange]);
 
 
   const handleSearch = (newTicker: string) => {
-    setTicker(newTicker.toUpperCase());
+    if (newTicker !== ticker) {
+        setTicker(newTicker.toUpperCase());
+    }
   };
 
   const handleTimeRangeChange = (newTimeRange: TimeRange) => {
@@ -128,7 +132,7 @@ export function Dashboard() {
         </div>
 
         <div className="mb-8">
-            {(isPending && !stockData) ? (
+            {isPending ? (
                  <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-4">
                         <Skeleton className="h-12 w-12 rounded-full" />
@@ -138,7 +142,7 @@ export function Dashboard() {
                         </div>
                     </div>
                 </div>
-            ) : stockData && (
+            ) : stockData ? (
                 <div>
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-4">
@@ -162,16 +166,16 @@ export function Dashboard() {
                       </div>
                     </div>
                 </div>
-            )}
+            ) : null}
             
-            {(isPending && !stockData) ? (
+            {isPending ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                 </div>
-            ) : stockData && (
+            ) : stockData ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -220,16 +224,16 @@ export function Dashboard() {
                         </CardContent>
                     </Card>
                 </div>
-            )}
+            ) : null}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending && !sentimentData ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
-                {isPending && !sentimentData ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
+                {isPending ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
+                {isPending ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
              </div>
-            {isPending && !stockData ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
+            {isPending ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1 space-y-6">
             <OptionPricerCard stockPrice={stockData?.price} />
@@ -240,3 +244,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    

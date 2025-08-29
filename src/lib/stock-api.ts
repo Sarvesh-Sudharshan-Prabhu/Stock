@@ -1,8 +1,8 @@
+
 'use server';
 
 import { z } from 'zod';
-import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult, type SentimentData } from './types';
-import { summarizeMarketSentiment } from '@/ai/flows/summarize-market-sentiment';
+import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult, SentimentDataSchema } from './types';
 
 const API_KEY = process.env.POLYGON_API_KEY;
 
@@ -52,8 +52,7 @@ export async function searchTickers(query: string): Promise<TickerSearchResult> 
 export async function getStockData(
   ticker: string,
   range: TimeRange,
-  sentimentData: SentimentData | null
-): Promise<StockData | null> {
+): Promise<Omit<StockData, 'sentiment'> | null> {
   try {
     const [details, aggregates, prevDayClose] = await Promise.all([
       getStockDetails(ticker),
@@ -61,15 +60,15 @@ export async function getStockData(
       getPreviousDayClose(ticker)
     ]);
 
-    if (!details || !aggregates || !prevDayClose) {
+    if (!details || !aggregates || !prevDayClose || aggregates.length === 0) {
       console.error(`Failed to fetch complete data for ${ticker}`);
       return null;
     }
 
     const { name } = details;
-    const currentPrice = aggregates.length > 0 ? aggregates[aggregates.length - 1].o : prevDayClose.c;
-    const change = currentPrice - prevDayClose.o;
-    const changePercent = (change / prevDayClose.o) * 100;
+    const currentPrice = aggregates[aggregates.length - 1].o;
+    const change = currentPrice - prevDayClose.c;
+    const changePercent = (change / prevDayClose.c) * 100;
 
     return {
       ticker,
@@ -81,7 +80,6 @@ export async function getStockData(
         date: new Date(agg.t).toISOString(),
         value: agg.o,
       })),
-      sentiment: sentimentData,
       logoUrl: details.branding?.logo_url ? `${details.branding.logo_url}?apiKey=${API_KEY}`: undefined,
     };
   } catch (error) {
@@ -207,3 +205,5 @@ export async function getNews(ticker: string): Promise<NewsArticle[]> {
     return [];
   }
 }
+
+    
