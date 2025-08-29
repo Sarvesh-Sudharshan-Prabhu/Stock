@@ -31,7 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface StockChartCardProps {
   data: StockData;
   timeRange: TimeRange;
-  setTimeRange: (range: TimeRange) => void;
+  onTimeRangeChange: (range: TimeRange) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -53,7 +53,7 @@ const formatDate = (dateString: string, range: TimeRange) => {
   }
 };
 
-export function StockChartCard({ data, timeRange, setTimeRange }: StockChartCardProps) {
+export function StockChartCard({ data, timeRange, onTimeRangeChange }: StockChartCardProps) {
   const isPositive = data.change >= 0;
 
   return (
@@ -65,7 +65,7 @@ export function StockChartCard({ data, timeRange, setTimeRange }: StockChartCard
             Performance for {data.ticker}
           </CardDescription>
         </div>
-        <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)} className="space-x-2">
+        <Tabs value={timeRange} onValueChange={(value) => onTimeRangeChange(value as TimeRange)} className="space-x-2">
           <TabsList>
             <TabsTrigger value="1D">1D</TabsTrigger>
             <TabsTrigger value="1W">1W</TabsTrigger>
@@ -155,3 +155,5 @@ export function StockChartSkeleton() {
     </Card>
   );
 }
+
+    

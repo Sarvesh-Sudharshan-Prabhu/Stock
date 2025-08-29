@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { Calculator } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { calculateBlackScholes } from "@/lib/black-scholes";
@@ -58,15 +58,15 @@ export function OptionPricerCard({ stockPrice }: OptionPricerCardProps) {
   };
 
   return (
-    <Card className="h-full">
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="h-5 w-5" />
           Black-Scholes Pricer
         </CardTitle>
-        <CardDescription>Calculate theoretical option prices.</CardDescription>
+        <CardDescription>Calculate theoretical European option prices.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -85,7 +85,7 @@ export function OptionPricerCard({ stockPrice }: OptionPricerCardProps) {
                 <FormItem><FormLabel>Risk-Free Rate</FormLabel><FormControl><Input type="number" placeholder="e.g., 0.05" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="volatility" render={({ field }) => (
-                <FormItem><FormLabel>Volatility</FormLabel><FormControl><Input type="number" placeholder="e.g., 0.2" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Volatility (σ)</FormLabel><FormControl><Input type="number" placeholder="e.g., 0.2" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
             <Button type="submit" className="w-full">Calculate</Button>
@@ -107,6 +107,18 @@ export function OptionPricerCard({ stockPrice }: OptionPricerCardProps) {
           </div>
         )}
       </CardContent>
+      <CardFooter className="mt-auto">
+         <CardDescription className="text-xs text-muted-foreground">
+            The Black-Scholes model provides a theoretical estimate of an option's price.
+            <strong className="font-semibold">Stock Price (S)</strong> is the current market price.
+            <strong className="font-semibold">Strike Price (K)</strong> is the price at which the option can be exercised.
+            <strong className="font-semibold">Time to Maturity (T)</strong> is the time remaining until the option expires, in years.
+            <strong className="font-semibold">Risk-Free Rate (r)</strong> is the theoretical return of an investment with no risk, like a government bond.
+            <strong className="font-semibold">Volatility (σ)</strong> is a measure of the stock's expected price fluctuation.
+          </CardDescription>
+      </CardFooter>
     </Card>
   );
 }
+
+    

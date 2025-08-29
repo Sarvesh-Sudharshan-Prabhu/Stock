@@ -16,6 +16,20 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+
+const popularTickers = [
+  { ticker: 'AAPL', name: 'Apple' },
+  { ticker: 'GOOGL', name: 'Alphabet' },
+  { ticker: 'MSFT', name: 'Microsoft' },
+  { ticker: 'AMZN', name: 'Amazon' },
+  { ticker: 'META', name: 'Meta' },
+  { ticker: 'TSLA', name: 'Tesla' },
+  { ticker: 'NVDA', name: 'NVIDIA' },
+  { ticker: 'JPM', name: 'JPMorgan Chase' },
+  { ticker: 'V', name: 'Visa' },
+  { ticker: 'JNJ', name: 'Johnson & Johnson' },
+];
 
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
@@ -36,6 +50,7 @@ export function Dashboard() {
         if (stock) {
           setStockData(stock);
         } else {
+          setStockData(null);
           toast({
             variant: "destructive",
             title: "Error",
@@ -59,11 +74,13 @@ export function Dashboard() {
       fetchData(ticker);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticker]);
+  }, [ticker, timeRange]);
 
 
   const handleSearch = (newTicker: string) => {
     setTicker(newTicker.toUpperCase());
+    setStockData(null);
+    setAiSummary(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -92,6 +109,22 @@ export function Dashboard() {
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-2 px-2">Popular Companies</h2>
+            <div className="flex flex-wrap gap-2">
+                {popularTickers.map(t => (
+                    <Badge 
+                        key={t.ticker}
+                        variant={ticker === t.ticker ? "default" : "secondary"}
+                        onClick={() => handleSearch(t.ticker)}
+                        className="cursor-pointer text-sm"
+                    >
+                       {t.name}
+                    </Badge>
+                ))}
+            </div>
+        </div>
+
         <div className="mb-8">
             {isPending && !stockData ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -148,8 +181,9 @@ export function Dashboard() {
                             </CardHeader>
                             <CardContent>
                                  <div className="text-4xl font-bold capitalize">
-                                    {
+                                    {stockData.sentiment && stockData.sentiment.sentiment ? 
                                         Object.entries(stockData.sentiment.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
+                                        : "N/A"
                                     }
                                 </div>
                             </CardContent>
@@ -170,10 +204,10 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData && <SentimentAnalysisCard data={stockData.sentiment} />}
+                {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData?.sentiment && <SentimentAnalysisCard data={stockData.sentiment} />}
                 {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
              </div>
-            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} setTimeRange={setTimeRange} />}
+            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={setTimeRange} />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1">
             <OptionPricerCard stockPrice={stockData?.price} />
@@ -183,3 +217,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
