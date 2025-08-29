@@ -15,7 +15,7 @@ export type SentimentAnalysisInput = z.infer<
 const SentimentAnalysisOutputSchema = z.object({
   summary: z
     .string()
-    .describe('A summary of the factors impacting the stock sentiment.'),
+    .describe('A summary of the market sentiment based on news and social media.'),
 });
 export type SentimentAnalysisOutput = z.infer<
   typeof SentimentAnalysisOutputSchema
@@ -50,10 +50,10 @@ const prompt = ai.definePrompt({
   input: { schema: SentimentAnalysisInputSchema },
   output: { schema: SentimentAnalysisOutputSchema },
   tools: [fetchSentimentData],
-  prompt: `You are a financial analyst summarizing market sentiment for stocks.
-  Analyze the news headlines fetched by the fetchStockNews tool for the given stock ticker and provide a concise summary of the factors impacting the sentiment.
-
-  Use the fetchStockNews tool to get the data for the ticker: {{{ticker}}}.`,
+  prompt: `You are a financial analyst specializing in market sentiment.
+  Analyze the news headlines provided by the fetchStockNews tool for the stock with ticker {{{ticker}}}.
+  Based on these headlines, provide a concise summary of the overall market sentiment for this stock.
+  Focus on whether the news is generally positive, negative, or neutral and what the key driving factors are.`,
 });
 
 const summarizeMarketSentimentFlow = ai.defineFlow(
@@ -65,7 +65,7 @@ const summarizeMarketSentimentFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     if (!output) {
-      return { summary: "Could not generate a summary at this time."};
+      return { summary: "Could not generate a sentiment summary at this time."};
     }
     return output;
   }

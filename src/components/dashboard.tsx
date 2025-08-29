@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useTransition } from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
 import { StockSearch } from "@/components/stock-search";
 import { StockInfoCard, StockInfoSkeleton } from "@/components/stock-info-card";
@@ -14,6 +14,7 @@ import { getStockData } from "@/lib/stock-api";
 import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment";
 import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentiment";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
@@ -72,24 +73,58 @@ export function Dashboard() {
     setAiSummary(null);
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(value);
+  };
+  
+  const isPositive = stockData && stockData.change > 0;
+  const isNegative = stockData && stockData.change < 0;
+  const ChangeIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
+  const changeColor = isPositive ? "text-green-500" : isNegative ? "text-red-500" : "text-muted-foreground";
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+      <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
         <div className="flex items-center gap-2 font-semibold">
           <DollarSign className="h-6 w-6 text-primary" />
           <span className="text-xl">MarketMood</span>
         </div>
-        <div className="flex w-full flex-1 items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-          <StockSearch onSearch={handleSearch} initialTicker={ticker} isSearching={isPending} />
+        <div className="flex w-full items-center gap-4 md:ml-auto">
+          {isPending && !stockData ? (
+             <div className="hidden md:flex items-baseline gap-4">
+                <Skeleton className="h-7 w-48" />
+                <Skeleton className="h-5 w-32" />
+             </div>
+          ) : stockData && (
+            <div className="hidden md:flex items-baseline gap-4">
+              <h1 className="text-2xl font-bold">{stockData.name} ({stockData.ticker})</h1>
+              <div className="text-2xl font-bold">{formatCurrency(stockData.price)}</div>
+              <div className={`flex items-center text-md ${changeColor}`}>
+                <ChangeIcon className="mr-1 h-4 w-4" />
+                <span>
+                  {isPositive ? "+" : ""}
+                  {formatCurrency(stockData.change)} ({stockData.changePercent.toFixed(2)}%)
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="ml-auto">
+            <StockSearch onSearch={handleSearch} initialTicker={ticker} isSearching={isPending} />
+          </div>
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {isPending && !stockData ? <StockInfoSkeleton /> : stockData && <StockInfoCard data={stockData} />}
-              {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData && <SentimentAnalysisCard data={stockData.sentiment} />}
-            </div>
+             <div className="grid gap-6 md:grid-cols-2">
+                <div className="md:hidden">
+                    {isPending && !stockData ? <StockInfoSkeleton /> : stockData && <StockInfoCard data={stockData} />}
+                </div>
+                {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData && <SentimentAnalysisCard data={stockData.sentiment} />}
+             </div>
             {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} setTimeRange={setTimeRange} />}
             {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
           </div>
