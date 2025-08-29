@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Command, CommandInput, CommandItem, CommandList, CommandEmpty, CommandLoading } from "@/components/ui/command";
 import { searchTickers } from "@/lib/stock-api";
 import type { TickerSearchResult } from "@/lib/types";
@@ -18,6 +18,7 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
   const [results, setResults] = useState<TickerSearchResult>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const commandRef = useRef<HTMLDivElement>(null);
 
   const debouncedQuery = useDebounce(query, 300);
 
@@ -42,14 +43,26 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
     onSearch(ticker);
   };
 
+  const handleFocus = () => {
+    setIsOpen(true);
+  };
+  
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // If the new focused element is not part of the command list, close it
+    if (commandRef.current && !commandRef.current.contains(e.relatedTarget as Node)) {
+        setIsOpen(false);
+    }
+  };
+
+
   return (
-    <Command shouldFilter={false} className="relative overflow-visible">
+    <Command shouldFilter={false} className="relative overflow-visible" ref={commandRef}>
       <CommandInput
         placeholder="Search for a company..."
         value={query}
         onValueChange={setQuery}
-        onFocus={() => setIsOpen(true)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         disabled={isSearching}
       />
       {isOpen && (
