@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult, SentimentDataSchema } from './types';
+import { type StockData, type TimeRange, TickerSearchResultSchema, type NewsArticle, type TickerSearchResult } from './types';
 
 const API_KEY = process.env.POLYGON_API_KEY;
 
@@ -19,12 +19,6 @@ const StockDetailsSchema = z.object({
 interface PolygonAggregatesResponse {
   results: { t: number; c: number }[];
   ticker: string;
-}
-
-interface PolygonPreviousCloseResponse {
-  results: {
-    c: number; // close
-  }[];
 }
 
 export async function searchTickers(query: string): Promise<TickerSearchResult> {
@@ -46,27 +40,27 @@ export async function searchTickers(query: string): Promise<TickerSearchResult> 
   }
 }
 
-
 export async function getStockData(
   ticker: string,
   range: TimeRange,
 ): Promise<Omit<StockData, 'sentiment'> | null> {
   try {
-    const [details, aggregates, prevDayClose] = await Promise.all([
+    const [details, aggregates] = await Promise.all([
       getStockDetails(ticker),
       getAggregateData(ticker, range),
-      getPreviousDayClose(ticker)
     ]);
 
-    if (!details || !aggregates || !prevDayClose || aggregates.length === 0) {
+    if (!details || !aggregates || aggregates.length === 0) {
       console.error(`Failed to fetch complete data for ${ticker}`);
       return null;
     }
     
     const { name } = details;
     const currentPrice = aggregates[aggregates.length - 1].c;
-    const change = currentPrice - prevDayClose.c;
-    const changePercent = prevDayClose.c !== 0 ? (change / prevDayClose.c) * 100 : 0;
+    // Calculate change based on the first and last points in the aggregate data
+    const openingPrice = aggregates[0].c;
+    const change = currentPrice - openingPrice;
+    const changePercent = openingPrice !== 0 ? (change / openingPrice) * 100 : 0;
 
     return {
       ticker,
@@ -103,23 +97,6 @@ async function getStockDetails(ticker: string) {
   }
 }
 
-async function getPreviousDayClose(ticker: string) {
-    const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${API_KEY}`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data: PolygonPreviousCloseResponse = await response.json();
-        if (data.results && data.results.length > 0) {
-            return data.results[0];
-        }
-        return { c: 0 };
-    } catch (error) {
-        console.error(`Error fetching previous day close for ${ticker}:`, error);
-        return { c: 0 };
-    }
-}
-
-
 function getAggregateDateRange(range: TimeRange) {
   const today = new Date();
   let fromDate: Date;
@@ -128,8 +105,15 @@ function getAggregateDateRange(range: TimeRange) {
 
   switch (range) {
     case '1D':
+       // Use the previous trading day for the 'from' date
       fromDate = new Date();
-      fromDate.setDate(today.getDate() - 1);
+      if (today.getDay() === 0) { // Sunday
+        fromDate.setDate(today.getDate() - 2);
+      } else if (today.getDay() === 1) { // Monday
+        fromDate.setDate(today.getDate() - 3);
+      } else {
+        fromDate.setDate(today.getDate() - 1);
+      }
       timespan = 'minute';
       multiplier = 5;
       break;

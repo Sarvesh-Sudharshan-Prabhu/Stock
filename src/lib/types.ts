@@ -11,7 +11,7 @@ export const SentimentDataSchema = z.object({
   summary: z.string().describe('A summary of the overall sentiment.'),
 });
 
-export type SentimentData = z.infer<typeof SentimentDataSchema> | null;
+export type SentimentData = z.infer<typeof SentimentDataSchema>;
 
 
 export interface StockData {
@@ -21,7 +21,7 @@ export interface StockData {
   change: number;
   changePercent: number;
   chartData: { date: string; value: number }[];
-  sentiment?: SentimentData;
+  sentiment?: SentimentData | null;
   logoUrl?: string;
 }
 

@@ -9,7 +9,7 @@ import { SentimentAnalysisCard, SentimentAnalysisSkeleton } from "@/components/s
 import { AiSummaryCard, AiSummarySkeleton } from "@/components/ai-summary-card";
 import { OptionPricerCard } from "@/components/option-pricer-card";
 import { PricePredictorCard } from "@/components/price-predictor-card";
-import type { StockData, TimeRange, SentimentData } from "@/lib/types";
+import type { StockData, TimeRange } from "@/lib/types";
 import { getStockData } from "@/lib/stock-api";
 import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +34,6 @@ const popularTickers = [
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
   const [stockData, setStockData] = useState<StockData | null>(null);
-  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1Y");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -42,24 +41,23 @@ export function Dashboard() {
   const fetchAllData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       setStockData(null);
-      setSentimentData(null);
       try {
         const stockRes = await getStockData(newTicker, newTimeRange);
-        if (stockRes) {
-          setStockData(stockRes);
-        } else {
+        if (!stockRes) {
           toast({
             variant: "destructive",
             title: "Error",
             description: `Could not load stock data for ${newTicker}.`,
           });
-          setStockData(null); // Explicitly clear on failure
-          setSentimentData(null);
-          return; // Stop if stock data fails
+          return;
         }
 
         const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
-        setSentimentData(sentimentRes);
+
+        setStockData({
+          ...stockRes,
+          sentiment: sentimentRes,
+        });
         
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -69,7 +67,6 @@ export function Dashboard() {
           description: `Failed to fetch data for ${newTicker}. Please try again.`,
         });
         setStockData(null);
-        setSentimentData(null);
       }
     });
   }, [toast]);
@@ -135,7 +132,7 @@ export function Dashboard() {
         </div>
 
         <div className="mb-8">
-            {isPending ? (
+            {isPending || !stockData ? (
                  <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-4">
                         <Skeleton className="h-12 w-12 rounded-full" />
@@ -145,7 +142,7 @@ export function Dashboard() {
                         </div>
                     </div>
                 </div>
-            ) : stockData ? (
+            ) : (
                 <div>
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-4">
@@ -169,16 +166,16 @@ export function Dashboard() {
                       </div>
                     </div>
                 </div>
-            ) : null}
+            )}
             
-            {isPending ? (
+            {isPending || !stockData ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                     <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
                 </div>
-            ) : stockData ? (
+            ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -211,8 +208,8 @@ export function Dashboard() {
                         </CardHeader>
                         <CardContent>
                              <div className="text-4xl font-bold capitalize">
-                                {sentimentData && sentimentData.sentiment ? 
-                                    Object.entries(sentimentData.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
+                                {stockData.sentiment && stockData.sentiment.sentiment ? 
+                                    Object.entries(stockData.sentiment.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
                                     : "N/A"
                                 }
                             </div>
@@ -227,14 +224,14 @@ export function Dashboard() {
                         </CardContent>
                     </Card>
                 </div>
-            ) : null}
+            )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending || !sentimentData ? <SentimentAnalysisSkeleton /> : <SentimentAnalysisCard data={sentimentData} />}
-                {isPending || !sentimentData ? <AiSummarySkeleton /> : <AiSummaryCard data={sentimentData} />}
+                {isPending || !stockData?.sentiment ? <SentimentAnalysisSkeleton /> : <SentimentAnalysisCard data={stockData.sentiment} />}
+                {isPending || !stockData?.sentiment ? <AiSummarySkeleton /> : <AiSummaryCard data={stockData.sentiment} />}
              </div>
             {isPending || !stockData ? <StockChartSkeleton /> : <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
           </div>
