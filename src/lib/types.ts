@@ -21,7 +21,7 @@ export interface StockData {
   change: number;
   changePercent: number;
   chartData: { date: string; value: number }[];
-  sentiment: SentimentData;
+  sentiment?: SentimentData;
   logoUrl?: string;
 }
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback, useTransition } from "react";
@@ -45,9 +44,6 @@ export function Dashboard() {
       setStockData(null);
       setSentimentData(null);
       try {
-        const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
-        setSentimentData(sentimentRes);
-        
         const stockRes = await getStockData(newTicker, newTimeRange);
         if (stockRes) {
           setStockData(stockRes);
@@ -57,7 +53,14 @@ export function Dashboard() {
             title: "Error",
             description: `Could not load stock data for ${newTicker}.`,
           });
+          setStockData(null); // Explicitly clear on failure
+          setSentimentData(null);
+          return; // Stop if stock data fails
         }
+
+        const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
+        setSentimentData(sentimentRes);
+        
       } catch (error) {
         console.error("Failed to fetch data:", error);
         toast({
@@ -230,10 +233,10 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
-                {isPending ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
+                {isPending || !sentimentData ? <SentimentAnalysisSkeleton /> : <SentimentAnalysisCard data={sentimentData} />}
+                {isPending || !sentimentData ? <AiSummarySkeleton /> : <AiSummaryCard data={sentimentData} />}
              </div>
-            {isPending ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
+            {isPending || !stockData ? <StockChartSkeleton /> : <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1 space-y-6">
             <OptionPricerCard stockPrice={stockData?.price} />
@@ -244,5 +247,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    

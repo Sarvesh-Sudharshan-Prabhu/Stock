@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -18,14 +17,13 @@ const StockDetailsSchema = z.object({
 });
 
 interface PolygonAggregatesResponse {
-  results: { t: number; o: number }[];
+  results: { t: number; c: number }[];
   ticker: string;
 }
 
 interface PolygonPreviousCloseResponse {
   results: {
     c: number; // close
-    o: number; // open
   }[];
 }
 
@@ -64,11 +62,11 @@ export async function getStockData(
       console.error(`Failed to fetch complete data for ${ticker}`);
       return null;
     }
-
+    
     const { name } = details;
-    const currentPrice = aggregates[aggregates.length - 1].o;
+    const currentPrice = aggregates[aggregates.length - 1].c;
     const change = currentPrice - prevDayClose.c;
-    const changePercent = (change / prevDayClose.c) * 100;
+    const changePercent = prevDayClose.c !== 0 ? (change / prevDayClose.c) * 100 : 0;
 
     return {
       ticker,
@@ -78,7 +76,7 @@ export async function getStockData(
       changePercent,
       chartData: aggregates.map((agg) => ({
         date: new Date(agg.t).toISOString(),
-        value: agg.o,
+        value: agg.c,
       })),
       logoUrl: details.branding?.logo_url ? `${details.branding.logo_url}?apiKey=${API_KEY}`: undefined,
     };
@@ -114,10 +112,10 @@ async function getPreviousDayClose(ticker: string) {
         if (data.results && data.results.length > 0) {
             return data.results[0];
         }
-        return { c: 0, o: 0 };
+        return { c: 0 };
     } catch (error) {
         console.error(`Error fetching previous day close for ${ticker}:`, error);
-        return { c: 0, o: 0 };
+        return { c: 0 };
     }
 }
 
@@ -205,5 +203,3 @@ export async function getNews(ticker: string): Promise<NewsArticle[]> {
     return [];
   }
 }
-
-    
