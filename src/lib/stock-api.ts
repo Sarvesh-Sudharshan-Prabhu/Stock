@@ -1,4 +1,3 @@
-// IMPORTANT: This file should not be used on the client side.
 'use server';
 
 import { z } from 'zod';
@@ -19,7 +18,21 @@ export type NewsArticle = z.infer<typeof NewsArticleSchema>;
 
 const StockDetailsSchema = z.object({
   name: z.string(),
+  branding: z.object({
+    logo_url: z.string().optional(),
+  }).optional(),
 });
+
+const TickerSearchSchema = z.object({
+  ticker: z.string(),
+  name: z.string(),
+  branding: z.object({
+    logo_url: z.string().optional(),
+  }).optional(),
+});
+export const TickerSearchResultSchema = z.array(TickerSearchSchema);
+export type TickerSearchResult = z.infer<typeof TickerSearchResultSchema>;
+
 
 interface PolygonAggregatesResponse {
   results: { t: number; o: number }[];
@@ -31,6 +44,31 @@ interface PolygonPreviousCloseResponse {
     c: number; // close
     o: number; // open
   }[];
+}
+
+export async function searchTickers(query: string): Promise<TickerSearchResult> {
+  if (!query) {
+    return [];
+  }
+  const url = `https://api.polygon.io/v3/reference/tickers?search=${query}&active=true&limit=10&apiKey=${API_KEY}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tickers: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const parsed = TickerSearchResultSchema.parse(data.results);
+    return parsed.map(item => ({
+      ...item,
+      branding: {
+        ...item.branding,
+        logo_url: item.branding?.logo_url ? `${item.branding.logo_url}?apiKey=${API_KEY}`: undefined,
+      }
+    }));
+  } catch (error) {
+    console.error(`Error searching for tickers:`, error);
+    return [];
+  }
 }
 
 
@@ -67,6 +105,7 @@ export async function getStockData(
         value: agg.o,
       })),
       sentiment,
+      logoUrl: details.branding?.logo_url ? `${details.branding.logo_url}?apiKey=${API_KEY}`: undefined,
     };
   } catch (error) {
     console.error(`Error fetching stock data for ${ticker}:`, error);

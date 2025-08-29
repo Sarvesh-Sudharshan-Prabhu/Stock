@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useCallback, useTransition } from "react";
 import { DollarSign, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
-import { StockSearch } from "@/components/stock-search";
-import { StockInfoCard, StockInfoSkeleton } from "@/components/stock-info-card";
+import { CompanySearch } from "@/components/company-search";
 import { StockChartCard, StockChartSkeleton } from "@/components/stock-chart-card";
 import { SentimentAnalysisCard, SentimentAnalysisSkeleton } from "@/components/sentiment-analysis-card";
 import { AiSummaryCard, AiSummarySkeleton } from "@/components/ai-summary-card";
@@ -16,6 +15,7 @@ import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentim
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
 
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
@@ -25,11 +25,15 @@ export function Dashboard() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
+  const fetchData = useCallback((newTicker: string) => {
     startTransition(async () => {
       try {
+        // Keep previous data while new data is loading for a smoother experience
+        // setStockData(null); 
+        // setAiSummary(null);
+
         const [stock, summaryRes] = await Promise.all([
-          getStockData(newTicker, newTimeRange),
+          getStockData(newTicker, timeRange),
           summarizeMarketSentiment({ ticker: newTicker }),
         ]);
 
@@ -41,7 +45,8 @@ export function Dashboard() {
             title: "Error",
             description: `Could not load stock data for ${newTicker}.`,
           });
-          setStockData(null);
+          // Don't null out data if the API fails, keep the old data
+          // setStockData(null); 
         }
         setAiSummary(summaryRes);
       } catch (error) {
@@ -51,27 +56,22 @@ export function Dashboard() {
           title: "Error",
           description: `Failed to fetch data for ${newTicker}. Please try again.`,
         });
-        setStockData(null);
-        setAiSummary(null);
+        // setStockData(null);
+        // setAiSummary(null);
       }
     });
-  }, [toast]);
+  }, [toast, timeRange]);
 
   useEffect(() => {
-    fetchData(ticker, timeRange);
+    if (ticker) {
+      fetchData(ticker);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticker]);
 
-    // Auto-refresh every 60 seconds
-    const intervalId = setInterval(() => {
-      fetchData(ticker, timeRange);
-    }, 60000);
-
-    return () => clearInterval(intervalId);
-  }, [fetchData, ticker, timeRange]);
 
   const handleSearch = (newTicker: string) => {
     setTicker(newTicker.toUpperCase());
-    setStockData(null);
-    setAiSummary(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -88,15 +88,10 @@ export function Dashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
         <div className="flex items-center gap-2 font-semibold">
           <DollarSign className="h-6 w-6 text-primary" />
           <span className="text-xl">MarketMood</span>
-        </div>
-        <div className="flex w-full items-center gap-4 md:ml-auto">
-          <div className="ml-auto">
-            <StockSearch onSearch={handleSearch} initialTicker={ticker} isSearching={isPending} />
-          </div>
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
@@ -110,7 +105,23 @@ export function Dashboard() {
                 </div>
             ) : stockData && (
                 <div>
-                    <h1 className="text-3xl font-bold mb-4">{stockData.name} ({stockData.ticker})</h1>
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-4">
+                         {stockData.logoUrl && (
+                          <Image 
+                            src={stockData.logoUrl}
+                            alt={`${stockData.name} logo`}
+                            width={48}
+                            height={48}
+                            className="rounded-full"
+                          />
+                        )}
+                        <h1 className="text-3xl font-bold">{stockData.name} ({stockData.ticker})</h1>
+                      </div>
+                       <div className="w-full max-w-xs">
+                          <CompanySearch onSearch={handleSearch} isSearching={isPending} />
+                       </div>
+                    </div>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -8,6 +8,7 @@ export interface StockData {
   changePercent: number;
   chartData: { date: string; value: number }[];
   sentiment: AnalyzeStockSentimentOutput;
+  logoUrl?: string;
 }
 
 export type TimeRange = "1D" | "1W" | "1M";
