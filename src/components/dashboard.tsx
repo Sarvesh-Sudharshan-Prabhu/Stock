@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useTransition } from "react";
-import { DollarSign, BarChart, Bot, Calculator } from "lucide-react";
+import { DollarSign } from "lucide-react";
 
 import { StockSearch } from "@/components/stock-search";
 import { StockInfoCard, StockInfoSkeleton } from "@/components/stock-info-card";
@@ -10,53 +10,14 @@ import { SentimentAnalysisCard, SentimentAnalysisSkeleton } from "@/components/s
 import { AiSummaryCard, AiSummarySkeleton } from "@/components/ai-summary-card";
 import { OptionPricerCard } from "@/components/option-pricer-card";
 import type { StockData, TimeRange } from "@/lib/types";
-import { analyzeStockSentiment } from "@/ai/flows/analyze-stock-sentiment";
-import type { AnalyzeStockSentimentOutput } from "@/ai/flows/analyze-stock-sentiment";
+import { getStockData } from "@/lib/stock-api";
 import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment";
 import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentiment";
 import { useToast } from "@/hooks/use-toast";
 
-const stockNames: { [key: string]: string } = {
-  AAPL: "Apple Inc.",
-  GOOGL: "Alphabet Inc.",
-  MSFT: "Microsoft Corp.",
-  AMZN: "Amazon.com, Inc.",
-  TSLA: "Tesla, Inc.",
-  META: "Meta Platforms, Inc.",
-};
-
-// Mock data generation
-const generateMockStockData = (ticker: string, range: TimeRange): StockData => {
-  const name = stockNames[ticker.toUpperCase()] || `${ticker.toUpperCase()} Company`;
-  const price = parseFloat((Math.random() * 1000 + 50).toFixed(2));
-  const change = parseFloat(((Math.random() - 0.5) * 40).toFixed(2));
-  const changePercent = parseFloat(((change / (price - change)) * 100).toFixed(2));
-
-  let days;
-  if (range === "1D") days = 24 * 60; // minutes
-  else if (range === "1W") days = 7;
-  else days = 30;
-
-  let lastValue = price - change;
-  const chartData = Array.from({ length: days }, (_, i) => {
-    const date = new Date();
-    if (range === "1D") date.setMinutes(date.getMinutes() - (days - i));
-    else date.setDate(date.getDate() - (days - i));
-    
-    lastValue += (Math.random() - 0.5) * 2;
-    return {
-      date: date.toISOString(),
-      value: parseFloat(lastValue.toFixed(2)),
-    };
-  });
-
-  return { ticker, name, price, change, changePercent, chartData };
-};
-
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
   const [stockData, setStockData] = useState<StockData | null>(null);
-  const [sentiment, setSentiment] = useState<AnalyzeStockSentimentOutput | null>(null);
   const [aiSummary, setAiSummary] = useState<SentimentAnalysisOutput | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1D");
   const [isPending, startTransition] = useTransition();
@@ -65,16 +26,21 @@ export function Dashboard() {
   const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       try {
-        // In a real app, you'd make API calls here.
-        // We use mock data for demonstration.
-        const [stock, sentimentRes, summaryRes] = await Promise.all([
-          Promise.resolve(generateMockStockData(newTicker, newTimeRange)),
-          analyzeStockSentiment({ ticker: newTicker }),
+        const [stock, summaryRes] = await Promise.all([
+          getStockData(newTicker, newTimeRange),
           summarizeMarketSentiment({ ticker: newTicker }),
         ]);
 
-        setStockData(stock);
-        setSentiment(sentimentRes);
+        if (stock) {
+          setStockData(stock);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Could not load stock data for ${newTicker}.`,
+          });
+          setStockData(null);
+        }
         setAiSummary(summaryRes);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -84,7 +50,6 @@ export function Dashboard() {
           description: `Failed to fetch data for ${newTicker}. Please try again.`,
         });
         setStockData(null);
-        setSentiment(null);
         setAiSummary(null);
       }
     });
@@ -92,10 +57,19 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchData(ticker, timeRange);
+
+    // Auto-refresh every 60 seconds
+    const intervalId = setInterval(() => {
+      fetchData(ticker, timeRange);
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [fetchData, ticker, timeRange]);
 
   const handleSearch = (newTicker: string) => {
     setTicker(newTicker.toUpperCase());
+    setStockData(null);
+    setAiSummary(null);
   };
 
   return (
@@ -113,11 +87,11 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-              {isPending ? <StockInfoSkeleton /> : stockData && <StockInfoCard data={stockData} />}
-              {isPending ? <SentimentAnalysisSkeleton /> : sentiment && <SentimentAnalysisCard data={sentiment} />}
+              {isPending && !stockData ? <StockInfoSkeleton /> : stockData && <StockInfoCard data={stockData} />}
+              {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData && <SentimentAnalysisCard data={stockData.sentiment} />}
             </div>
-            {isPending ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} setTimeRange={setTimeRange} />}
-            {isPending ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
+            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} setTimeRange={setTimeRange} />}
+            {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1">
             <OptionPricerCard stockPrice={stockData?.price} />
