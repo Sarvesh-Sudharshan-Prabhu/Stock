@@ -15,6 +15,7 @@ import { summarizeMarketSentiment } from "@/ai/flows/summarize-market-sentiment"
 import type { SentimentAnalysisOutput } from "@/ai/flows/summarize-market-sentiment";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Dashboard() {
   const [ticker, setTicker] = useState("AAPL");
@@ -87,46 +88,87 @@ export function Dashboard() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-20 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
         <div className="flex items-center gap-2 font-semibold">
           <DollarSign className="h-6 w-6 text-primary" />
           <span className="text-xl">MarketMood</span>
         </div>
         <div className="flex w-full items-center gap-4 md:ml-auto">
-          {isPending && !stockData ? (
-             <div className="hidden md:flex items-baseline gap-4">
-                <Skeleton className="h-7 w-48" />
-                <Skeleton className="h-5 w-32" />
-             </div>
-          ) : stockData && (
-            <div className="hidden md:flex items-baseline gap-4">
-              <h1 className="text-2xl font-bold">{stockData.name} ({stockData.ticker})</h1>
-              <div className="text-2xl font-bold">{formatCurrency(stockData.price)}</div>
-              <div className={`flex items-center text-md ${changeColor}`}>
-                <ChangeIcon className="mr-1 h-4 w-4" />
-                <span>
-                  {isPositive ? "+" : ""}
-                  {formatCurrency(stockData.change)} ({stockData.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
-          )}
           <div className="ml-auto">
             <StockSearch onSearch={handleSearch} initialTicker={ticker} isSearching={isPending} />
           </div>
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="mb-8">
+            {isPending && !stockData ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                </div>
+            ) : stockData && (
+                <div>
+                    <h1 className="text-3xl font-bold mb-4">{stockData.name} ({stockData.ticker})</h1>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Current Price</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{formatCurrency(stockData.price)}</div>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Today's Change</CardTitle>
+                                <ChangeIcon className={`h-4 w-4 ${changeColor}`} />
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-4xl font-bold ${changeColor}`}>
+                                    {isPositive ? "+" : ""}
+                                    {formatCurrency(stockData.change)}
+                                </div>
+                                <p className={`text-xs ${changeColor}`}>
+                                    {isPositive ? "+" : ""}
+                                    {stockData.changePercent.toFixed(2)}%
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Sentiment</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                 <div className="text-4xl font-bold capitalize">
+                                    {
+                                        Object.entries(stockData.sentiment.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
+                                    }
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Time Range</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-4xl font-bold">{timeRange}</div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
+        </div>
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                <div className="md:hidden">
-                    {isPending && !stockData ? <StockInfoSkeleton /> : stockData && <StockInfoCard data={stockData} />}
-                </div>
                 {isPending && !stockData ? <SentimentAnalysisSkeleton /> : stockData && <SentimentAnalysisCard data={stockData.sentiment} />}
+                {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
              </div>
             {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} setTimeRange={setTimeRange} />}
-            {isPending && !aiSummary ? <AiSummarySkeleton /> : aiSummary && <AiSummaryCard data={aiSummary} />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1">
             <OptionPricerCard stockPrice={stockData?.price} />
