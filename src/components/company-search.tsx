@@ -28,8 +28,10 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
       const data = await searchTickers(searchQuery);
       setResults(data);
       setIsLoading(false);
+      setIsOpen(true);
     } else {
       setResults([]);
+      setIsOpen(false);
     }
   }, []);
 
@@ -63,7 +65,7 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
         placeholder="Search for a company..."
         value={query}
         onValueChange={setQuery}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => query.length > 0 && setIsOpen(true)}
         disabled={isSearching}
       />
       {isOpen && (
@@ -83,15 +85,14 @@ export function CompanySearch({ onSearch, isSearching }: CompanySearchProps) {
                 <div className="flex items-center gap-4">
                    {item.branding?.logo_url ? (
                     <Image
-                      src={item.branding.logo_url}
+                      src={`${item.branding.logo_url}?apiKey=${process.env.NEXT_PUBLIC_POLYGON_API_KEY}`}
                       alt={`${item.name} logo`}
                       width={24}
                       height={24}
                       className="rounded-full"
-                      unoptimized // As URL contains API key
                     />
                   ) : (
-                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
                         {item.ticker.slice(0,1)}
                     </div>
                   )}

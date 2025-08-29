@@ -128,18 +128,21 @@ export function Dashboard() {
         </div>
 
         <div className="mb-8">
-            {isPending && !stockData ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
-                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
-                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
-                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+            {(isPending && !stockData) ? (
+                 <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div>
+                          <Skeleton className="h-8 w-48 mb-2" />
+                          <Skeleton className="h-6 w-32" />
+                        </div>
+                    </div>
                 </div>
             ) : stockData && (
                 <div>
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-4">
-                         {stockData.logoUrl && (
+                         {stockData.logoUrl ? (
                           <Image 
                             src={stockData.logoUrl}
                             alt={`${stockData.name} logo`}
@@ -147,58 +150,75 @@ export function Dashboard() {
                             height={48}
                             className="rounded-full"
                           />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-lg font-semibold text-muted-foreground">
+                            {stockData.ticker.slice(0,1)}
+                          </div>
                         )}
-                        <h1 className="text-3xl font-bold">{stockData.name} ({stockData.ticker})</h1>
+                        <div>
+                          <h1 className="text-3xl font-bold">{stockData.name} ({stockData.ticker})</h1>
+                          <p className="text-muted-foreground">Data for {new Date().toLocaleDateString()}</p>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Current Price</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-bold">{formatCurrency(stockData.price)}</div>
-                            </CardContent>
-                        </Card>
-                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Today's Change</CardTitle>
-                                <ChangeIcon className={`h-4 w-4 ${changeColor}`} />
-                            </CardHeader>
-                            <CardContent>
-                                <div className={`text-4xl font-bold ${changeColor}`}>
-                                    {isPositive ? "+" : ""}
-                                    {formatCurrency(stockData.change)}
-                                </div>
-                                <p className={`text-xs ${changeColor}`}>
-                                    {isPositive ? "+" : ""}
-                                    {stockData.changePercent.toFixed(2)}%
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Sentiment</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                 <div className="text-4xl font-bold capitalize">
-                                    {stockData.sentiment && stockData.sentiment.sentiment ? 
-                                        Object.entries(stockData.sentiment.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
-                                        : "N/A"
-                                    }
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Time Range</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-bold">{timeRange}</div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                </div>
+            )}
+            
+            {(isPending && !stockData) ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                    <Card><CardHeader><Skeleton className="h-5 w-24" /></CardHeader><CardContent><Skeleton className="h-10 w-32" /></CardContent></Card>
+                </div>
+            ) : stockData && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Current Price</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold">{formatCurrency(stockData.price)}</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Today's Change</CardTitle>
+                            <ChangeIcon className={`h-4 w-4 ${changeColor}`} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-4xl font-bold ${changeColor}`}>
+                                {isPositive ? "+" : ""}
+                                {formatCurrency(stockData.change)}
+                            </div>
+                            <p className={`text-xs ${changeColor}`}>
+                                {isPositive ? "+" : ""}
+                                {stockData.changePercent.toFixed(2)}%
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Sentiment</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="text-4xl font-bold capitalize">
+                                {sentimentData && sentimentData.sentiment ? 
+                                    Object.entries(sentimentData.sentiment).reduce((a, b) => b[1] > a[1] ? b : a)[0]
+                                    : "N/A"
+                                }
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Time Range</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold">{timeRange}</div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>
@@ -206,10 +226,10 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
-                {isPending ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
+                {isPending && !sentimentData ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
+                {isPending && !sentimentData ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
              </div>
-            {isPending ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
+            {isPending && !stockData ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1 space-y-6">
             <OptionPricerCard stockPrice={stockData?.price} />

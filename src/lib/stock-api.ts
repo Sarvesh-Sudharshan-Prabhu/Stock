@@ -40,14 +40,8 @@ export async function searchTickers(query: string): Promise<TickerSearchResult> 
       throw new Error(`Failed to fetch tickers: ${response.statusText}`);
     }
     const data = await response.json();
-    const parsed = TickerSearchResultSchema.parse(data.results);
-    return parsed.map(item => ({
-      ...item,
-      branding: {
-        ...item.branding,
-        logo_url: item.branding?.logo_url ? `${item.branding.logo_url}?apiKey=${API_KEY}`: undefined,
-      }
-    }));
+    return TickerSearchResultSchema.parse(data.results);
+
   } catch (error) {
     console.error(`Error searching for tickers:`, error);
     return [];
