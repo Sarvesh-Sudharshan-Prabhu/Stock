@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback, useTransition } from "react";
@@ -42,9 +43,6 @@ export function Dashboard() {
   const fetchData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
       try {
-        setStockData(null);
-        setSentimentData(null);
-        
         const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
         setSentimentData(sentimentRes);
         
@@ -208,10 +206,10 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="lg:col-span-2 xl:col-span-3 space-y-6">
              <div className="grid gap-6 md:grid-cols-2">
-                {isPending && !sentimentData ? <SentimentAnalysisSkeleton /> : sentimentData && <SentimentAnalysisCard data={sentimentData} />}
-                {isPending && !sentimentData ? <AiSummarySkeleton /> : sentimentData && <AiSummaryCard data={sentimentData} />}
+                {isPending ? <SentimentAnalysisSkeleton /> : sentimentData ? <SentimentAnalysisCard data={sentimentData} /> : <SentimentAnalysisSkeleton />}
+                {isPending ? <AiSummarySkeleton /> : sentimentData ? <AiSummaryCard data={sentimentData} />: <AiSummarySkeleton />}
              </div>
-            {isPending && !stockData ? <StockChartSkeleton /> : stockData && <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} />}
+            {isPending ? <StockChartSkeleton /> : stockData ? <StockChartCard data={stockData} timeRange={timeRange} onTimeRangeChange={handleTimeRangeChange} /> : <StockChartSkeleton />}
           </div>
           <div className="lg:col-span-1 xl:col-span-1 space-y-6">
             <OptionPricerCard stockPrice={stockData?.price} />
