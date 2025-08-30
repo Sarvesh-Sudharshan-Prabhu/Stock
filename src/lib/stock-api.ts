@@ -14,6 +14,7 @@ const StockDetailsSchema = z.object({
   branding: z.object({
     logo_url: z.string().optional(),
   }).optional(),
+  list_date: z.string().optional(),
 });
 
 interface PolygonAggregatesResponse {
@@ -45,13 +46,17 @@ export async function getStockData(
   range: TimeRange,
 ): Promise<Omit<StockData, 'sentiment'> | null> {
   try {
-    const [details, aggregates] = await Promise.all([
-      getStockDetails(ticker),
-      getAggregateData(ticker, range),
-    ]);
+    const details = await getStockDetails(ticker);
+    if (!details) {
+      console.error(`Failed to fetch details for ${ticker}`);
+      return null;
+    }
 
-    if (!details || !aggregates || aggregates.length === 0) {
-      console.error(`Failed to fetch complete data for ${ticker}`);
+    const listDate = details.list_date;
+    const aggregates = await getAggregateData(ticker, range, listDate);
+
+    if (aggregates.length === 0) {
+      console.error(`Failed to fetch aggregate data for ${ticker}`);
       return null;
     }
     
@@ -92,11 +97,11 @@ async function getStockDetails(ticker: string) {
     return StockDetailsSchema.parse(data.results);
   } catch (error) {
     console.error(`Error in getStockDetails for ${ticker}:`, error);
-    return { name: 'Unknown Company' }; // Fallback
+    return null;
   }
 }
 
-function getAggregateDateRange(range: TimeRange) {
+function getAggregateDateRange(range: TimeRange, listDate?: string | null) {
   const today = new Date();
   let fromDate: Date;
   let timespan: string;
@@ -105,7 +110,8 @@ function getAggregateDateRange(range: TimeRange) {
   switch (range) {
     case '1D':
       fromDate = new Date();
-      fromDate.setDate(today.getDate() - 4); // Go back 4 days to ensure we capture a trading day
+      // Go back a few days to ensure we capture the last trading day, accounting for weekends/holidays
+      fromDate.setDate(today.getDate() - 4); 
       timespan = 'minute';
       multiplier = 5;
       break;
@@ -128,9 +134,11 @@ function getAggregateDateRange(range: TimeRange) {
       multiplier = 1;
       break;
     case 'All':
-      fromDate = new Date();
-      fromDate.setFullYear(today.getFullYear() - 20); // Fetch up to 20 years of data
-      timespan = 'month';
+      fromDate = listDate ? new Date(listDate) : new Date();
+      if (!listDate) {
+        fromDate.setFullYear(today.getFullYear() - 20); // Fallback to 20 years if no list date
+      }
+      timespan = 'day';
       multiplier = 1;
       break;
     case '1M':
@@ -146,10 +154,10 @@ function getAggregateDateRange(range: TimeRange) {
   return { from, to, multiplier, timespan };
 }
 
-async function getAggregateData(ticker: string, range: TimeRange) {
-  const { from, to, multiplier, timespan } = getAggregateDateRange(range);
-  const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=5000&apiKey=${API_KEY}`;
-
+async function getAggregateData(ticker: string, range: TimeRange, listDate?: string | null) {
+  const { from, to, multiplier, timespan } = getAggregateDateRange(range, listDate);
+  const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${API_KEY}`;
+  
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -159,16 +167,12 @@ async function getAggregateData(ticker: string, range: TimeRange) {
       return [];
     }
     
+    // For 1D, find the most recent day with data and return only that day's data
     if (range === '1D') {
         const lastTimestamp = data.results[data.results.length - 1].t;
         const lastDate = new Date(lastTimestamp).toDateString();
         const filteredResults = data.results.filter(r => new Date(r.t).toDateString() === lastDate);
-
-        // If filtering by today's date yields no results (e.g., on a weekend),
-        // return the last day's worth of data that we have.
-        if (filteredResults.length > 0) {
-            return filteredResults;
-        }
+        return filteredResults.length > 0 ? filteredResults : data.results;
     }
     
     return data.results;
