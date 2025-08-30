@@ -105,15 +105,10 @@ function getAggregateDateRange(range: TimeRange) {
 
   switch (range) {
     case '1D':
-       // Use the previous trading day for the 'from' date
       fromDate = new Date();
-      if (today.getDay() === 0) { // Sunday
-        fromDate.setDate(today.getDate() - 2);
-      } else if (today.getDay() === 1) { // Monday
-        fromDate.setDate(today.getDate() - 3);
-      } else {
-        fromDate.setDate(today.getDate() - 1);
-      }
+      // Go back one day. If it's a weekend, it will be handled by the API returning the last trading day's data.
+      // To be safe, we can go back a few days to ensure we land on a trading day.
+      fromDate.setDate(today.getDate() - 3);
       timespan = 'minute';
       multiplier = 5;
       break;
@@ -162,6 +157,14 @@ async function getAggregateData(ticker: string, range: TimeRange) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data: PolygonAggregatesResponse = await response.json();
+    
+    // For 1D, we might get more than one day's data, so we filter to the most recent day
+    if (range === '1D' && data.results && data.results.length > 0) {
+        const lastTimestamp = data.results[data.results.length - 1].t;
+        const lastDate = new Date(lastTimestamp).toDateString();
+        return data.results.filter(r => new Date(r.t).toDateString() === lastDate);
+    }
+    
     return data.results || [];
   } catch (error) {
     console.error(`Error fetching aggregate data for ${ticker}:`, error);
