@@ -40,19 +40,22 @@ export function Dashboard() {
 
   const fetchAllData = useCallback((newTicker: string, newTimeRange: TimeRange) => {
     startTransition(async () => {
-      setStockData(null);
+      setStockData(null); 
       try {
-        const stockRes = await getStockData(newTicker, newTimeRange);
+        const [stockRes, sentimentRes] = await Promise.all([
+          getStockData(newTicker, newTimeRange),
+          summarizeMarketSentiment({ ticker: newTicker }),
+        ]);
+        
         if (!stockRes) {
           toast({
             variant: "destructive",
             title: "Error",
-            description: `Could not load stock data for ${newTicker}.`,
+            description: `Could not load stock data for ${newTicker}. Please try again later.`,
           });
+          setStockData(null);
           return;
         }
-
-        const sentimentRes = await summarizeMarketSentiment({ ticker: newTicker });
 
         setStockData({
           ...stockRes,
@@ -64,7 +67,7 @@ export function Dashboard() {
         toast({
           variant: "destructive",
           title: "Error",
-          description: `Failed to fetch data for ${newTicker}. Please try again.`,
+          description: `An unexpected error occurred while fetching data for ${newTicker}.`,
         });
         setStockData(null);
       }
@@ -95,8 +98,20 @@ export function Dashboard() {
       currency: "USD",
     }).format(value);
   };
+
+  const getTimeRangeLabel = (range: TimeRange) => {
+    const labels = {
+      '1D': "Today's Change",
+      '1W': '1W Change',
+      '1M': '1M Change',
+      '6M': '6M Change',
+      '1Y': '1Y Change',
+      'All': 'All Time Change',
+    }
+    return labels[range] || "Change";
+  }
   
-  const isPositive = stockData && stockData.change > 0;
+  const isPositive = stockData && stockData.change >= 0;
   const isNegative = stockData && stockData.change < 0;
   const ChangeIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
   const changeColor = isPositive ? "text-green-500" : isNegative ? "text-red-500" : "text-muted-foreground";
@@ -188,7 +203,7 @@ export function Dashboard() {
                     </Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Today's Change</CardTitle>
+                            <CardTitle className="text-sm font-medium">{getTimeRangeLabel(timeRange)}</CardTitle>
                             <ChangeIcon className={`h-4 w-4 ${changeColor}`} />
                         </CardHeader>
                         <CardContent>

@@ -57,7 +57,6 @@ export async function getStockData(
     
     const { name } = details;
     const currentPrice = aggregates[aggregates.length - 1].c;
-    // Calculate change based on the first and last points in the aggregate data
     const openingPrice = aggregates[0].c;
     const change = currentPrice - openingPrice;
     const changePercent = openingPrice !== 0 ? (change / openingPrice) * 100 : 0;
@@ -106,9 +105,7 @@ function getAggregateDateRange(range: TimeRange) {
   switch (range) {
     case '1D':
       fromDate = new Date();
-      // Go back one day. If it's a weekend, it will be handled by the API returning the last trading day's data.
-      // To be safe, we can go back a few days to ensure we land on a trading day.
-      fromDate.setDate(today.getDate() - 3);
+      fromDate.setDate(today.getDate() - 4); // Go back 4 days to ensure we capture a trading day
       timespan = 'minute';
       multiplier = 5;
       break;
@@ -158,14 +155,23 @@ async function getAggregateData(ticker: string, range: TimeRange) {
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data: PolygonAggregatesResponse = await response.json();
     
-    // For 1D, we might get more than one day's data, so we filter to the most recent day
-    if (range === '1D' && data.results && data.results.length > 0) {
-        const lastTimestamp = data.results[data.results.length - 1].t;
-        const lastDate = new Date(lastTimestamp).toDateString();
-        return data.results.filter(r => new Date(r.t).toDateString() === lastDate);
+    if (!data.results || data.results.length === 0) {
+      return [];
     }
     
-    return data.results || [];
+    if (range === '1D') {
+        const lastTimestamp = data.results[data.results.length - 1].t;
+        const lastDate = new Date(lastTimestamp).toDateString();
+        const filteredResults = data.results.filter(r => new Date(r.t).toDateString() === lastDate);
+
+        // If filtering by today's date yields no results (e.g., on a weekend),
+        // return the last day's worth of data that we have.
+        if (filteredResults.length > 0) {
+            return filteredResults;
+        }
+    }
+    
+    return data.results;
   } catch (error) {
     console.error(`Error fetching aggregate data for ${ticker}:`, error);
     return []; // Return empty array on error
